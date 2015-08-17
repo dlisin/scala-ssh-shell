@@ -16,17 +16,43 @@
 
 package peak6.util
 
-import com.weiglewilczek.slf4s.Logging
-import java.io.{BufferedReader, InputStreamReader, PrintWriter}
+import java.io.{ BufferedReader, InputStreamReader, PrintWriter }
 import org.apache.sshd.server.session.ServerSession
 import org.apache.sshd.common.keyprovider.AbstractKeyPairProvider
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider
 import scala.reflect.Manifest
 import scala.concurrent.ops.spawn
 
-class ScalaSshShell(port: Int, name:
-                    String, user: String, passwd: String,
-                    keysResourcePath: Option[String]) {
+object ScalaSshShell {
+  implicit val (logger, formatter, appender) = ZeroLoggerFactory.newLogger(this)
+
+  def main(args: Array[String]) {
+    val sshd = new ScalaSshShell(port = 4444, name = "test", user = "user",
+      passwd = "fluke",
+      keysResourcePath = Some("/test.ssh.keys"))
+    sshd.bind("pi", 3.1415926)
+    sshd.bind("nums", Vector(1, 2, 3, 4, 5))
+    new Thread {
+      override final def run() {
+        sshd.start()
+      }
+    }.start()
+    new java.util.Scanner(System.in) nextLine ()
+    sshd.stop()
+  }
+
+  def generateKeys(path: String) {
+    val key = new SimpleGeneratorHostKeyProvider(path)
+    key.loadKeys()
+  }
+}
+
+class ScalaSshShell(port: Int, name: String, user: String, passwd: String,
+  keysResourcePath: Option[String]) {
+  import ScalaSshShell.logger
+  import ScalaSshShell.formatter
+  import ScalaSshShell.appender
+
   var bindings: Seq[(String, String, Any)] = IndexedSeq()
 
   def bind[T: Manifest](name: String, value: T) {
@@ -55,24 +81,23 @@ class ScalaSshShell(port: Int, name:
       // instance of another so we can return it from loadKey(). What
       // a complete waste of time.
       new AbstractKeyPairProvider {
-        val pair = new SimpleGeneratorHostKeyProvider() {
-          val in = classOf[ScalaSshShell].getResourceAsStream(
-            keysResourcePath.get)
-          val get = doReadKeyPair(in)
-        }.get
+      val pair = new SimpleGeneratorHostKeyProvider() {
+        val in = classOf[ScalaSshShell].getResourceAsStream(
+          keysResourcePath.get)
+        val get = doReadKeyPair(in)
+      }.get
 
-        override def getKeyTypes() = getKeyType(pair)
-        override def loadKey(s:String) = pair
-        def loadKeys() = Array[java.security.KeyPair]()
-      }
+      override def getKeyTypes() = getKeyType(pair)
+      override def loadKey(s: String) = pair
+      def loadKeys() = Array[java.security.KeyPair]()
+    }
     else
-      new SimpleGeneratorHostKeyProvider()
-  )
+      new SimpleGeneratorHostKeyProvider())
 
   sshd.setShellFactory(
     new org.apache.sshd.common.Factory[org.apache.sshd.server.Command] {
       def create() =
-        new org.apache.sshd.server.Command with Logging {
+        new org.apache.sshd.server.Command {
           logger.info("Instantiated")
           var in: java.io.InputStream = null
           var out: java.io.OutputStream = null
@@ -81,7 +106,7 @@ class ScalaSshShell(port: Int, name:
           var thread: Thread = null
           @volatile var inShutdown = false
 
-          def setInputStream(in: java.io.InputStream) { this.in = in}
+          def setInputStream(in: java.io.InputStream) { this.in = in }
 
           def setOutputStream(out: java.io.OutputStream) {
             this.out = new java.io.OutputStream {
@@ -125,7 +150,8 @@ class ScalaSshShell(port: Int, name:
               il.setPrompt(name + "> ")
               il.settings = new scala.tools.nsc.Settings()
               il.settings.embeddedDefaults(getClass.getClassLoader)
-	      il.settings.usejavacp.value = true
+              il.settings.usejavacp.value = true
+              il.settings.Yreplsync.value = true
               il.createInterpreter()
 
               il.in = new scala.tools.nsc.interpreter.JLineIOReader(
@@ -134,7 +160,7 @@ class ScalaSshShell(port: Int, name:
                 new scala.tools.nsc.interpreter.JLineCompletion(il.intp))
 
               if (il.intp.reporter.hasErrors) {
-                logger.error("Got errors, abandoning connection")
+                logger.severe("Got errors, abandoning connection")
                 return
               }
 
@@ -175,25 +201,5 @@ class ScalaSshShell(port: Int, name:
 
   def stop() {
     sshd.stop()
-  }
-}
-
-object ScalaSshShell {
-  def main(args: Array[String]) {
-    val sshd = new ScalaSshShell(port=4444, name="test", user="user",
-                                 passwd="fluke",
-                                 keysResourcePath=Some("/test.ssh.keys"))
-    sshd.bind("pi", 3.1415926)
-    sshd.bind("nums", Vector(1,2,3,4,5))
-    spawn {
-      sshd.start()
-    }
-    new java.util.Scanner(System.in) nextLine()
-    sshd.stop()
-  }
-
-  def generateKeys(path: String) {
-    val key = new SimpleGeneratorHostKeyProvider(path)
-    key.loadKeys()
   }
 }

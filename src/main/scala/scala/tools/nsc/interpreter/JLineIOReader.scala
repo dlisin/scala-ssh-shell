@@ -20,21 +20,18 @@ import io.Streamable.slurp
 class JLineIOReader(in: java.io.InputStream,
                     out: java.io.OutputStream,
                     _completion: => Completion) extends InteractiveReader {
-  val interactive = true
+  override val interactive = true
   val consoleReader = new JLineConsoleReader()
 
-  lazy val completion = _completion
-  lazy val history: JLineHistory = JLineHistory()
-  lazy val keyBindings =
-    try KeyBinding parse slurp(term.getDefaultBindings)
-    catch { case _: Exception => Nil }
+  override lazy val completion = _completion
+  override lazy val history: JLineHistory = JLineHistory()
 
   private def term = consoleReader.getTerminal()
-  def reset() = term.reset()
-  def init()  = term.init()
+  override def reset() = term.reset()
+  override def init()  = term.init()
 
   def scalaToJline(tc: ScalaCompleter): Completer = new Completer {
-    def complete(_buf: String, cursor: Int, candidates: JList[CharSequence]): Int = {
+    override def complete(_buf: String, cursor: Int, candidates: JList[CharSequence]): Int = {
       val buf   = if (_buf == null) "" else _buf
       val Candidates(newCursor, newCandidates) = tc.complete(buf, cursor)
       newCandidates foreach (candidates add _)
@@ -46,8 +43,8 @@ class JLineIOReader(in: java.io.InputStream,
   extends ConsoleReader(in, out, null, new SshTerminal)
   with ConsoleReaderHelper {
     // working around protected/trait/java insufficiencies.
-    def goBack(num: Int): Unit = back(num)
-    def readOneKey(prompt: String) = {
+    override def goBack(num: Int): Unit = back(num)
+    override def readOneKey(prompt: String) = {
       this.print(prompt)
       this.flush()
       this.readVirtualKey()
