@@ -16,16 +16,16 @@
 
 package peak6.util
 
-import java.io.{ BufferedReader, InputStreamReader, PrintWriter }
-import org.apache.sshd.server.session.ServerSession
+import java.io.PrintWriter
+
+import grizzled.slf4j.Logging
 import org.apache.sshd.common.keyprovider.AbstractKeyPairProvider
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider
+import org.apache.sshd.server.session.ServerSession
+
 import scala.reflect.Manifest
-import scala.concurrent.ops.spawn
 
 object ScalaSshShell {
-  implicit val (logger, formatter, appender) = ZeroLoggerFactory.newLogger(this)
-
   def main(args: Array[String]) {
     val sshd = new ScalaSshShell(port = 4444, name = "test", user = "user",
       passwd = "fluke",
@@ -37,7 +37,7 @@ object ScalaSshShell {
         sshd.start()
       }
     }.start()
-    new java.util.Scanner(System.in) nextLine ()
+    new java.util.Scanner(System.in) nextLine()
     sshd.stop()
   }
 
@@ -48,15 +48,12 @@ object ScalaSshShell {
 }
 
 class ScalaSshShell(port: Int, name: String, user: String, passwd: String,
-  keysResourcePath: Option[String]) {
-  import ScalaSshShell.logger
-  import ScalaSshShell.formatter
-  import ScalaSshShell.appender
+                    keysResourcePath: Option[String]) {
 
   var bindings: Seq[(String, String, Any)] = IndexedSeq()
 
   def bind[T: Manifest](name: String, value: T) {
-    bindings :+= (name, manifest[T].toString, value)
+    bindings :+=(name, manifest[T].toString, value)
   }
 
   val sshd = org.apache.sshd.SshServer.setUpDefaultServer()
@@ -70,34 +67,36 @@ class ScalaSshShell(port: Int, name: String, user: String, passwd: String,
 
   sshd.setKeyPairProvider(
     if (keysResourcePath.isDefined)
-      // 'private' is one of the most annoying things ever invented.
-      // Apache's sshd will only generate a key, or read it from an
-      // absolute path (via a string, eg can't work directly on
-      // resources), but they do privide protected methods for reading
-      // from a stream, but not into the internal copy that gets
-      // returned when you call loadKey(), which is of course privite
-      // so there is no way to copy it. So we construct one provider
-      // so we can parse the resource, and then impliment our own
-      // instance of another so we can return it from loadKey(). What
-      // a complete waste of time.
+    // 'private' is one of the most annoying things ever invented.
+    // Apache's sshd will only generate a key, or read it from an
+    // absolute path (via a string, eg can't work directly on
+    // resources), but they do privide protected methods for reading
+    // from a stream, but not into the internal copy that gets
+    // returned when you call loadKey(), which is of course privite
+    // so there is no way to copy it. So we construct one provider
+    // so we can parse the resource, and then impliment our own
+    // instance of another so we can return it from loadKey(). What
+    // a complete waste of time.
       new AbstractKeyPairProvider {
-      val pair = new SimpleGeneratorHostKeyProvider() {
-        val in = classOf[ScalaSshShell].getResourceAsStream(
-          keysResourcePath.get)
-        val get = doReadKeyPair(in)
-      }.get
+        val pair = new SimpleGeneratorHostKeyProvider() {
+          val in = classOf[ScalaSshShell].getResourceAsStream(
+            keysResourcePath.get)
+          val get = doReadKeyPair(in)
+        }.get
 
-      override def getKeyTypes() = getKeyType(pair)
-      override def loadKey(s: String) = pair
-      def loadKeys() = Array[java.security.KeyPair]()
-    }
+        override def getKeyTypes() = getKeyType(pair)
+
+        override def loadKey(s: String) = pair
+
+        def loadKeys() = Array[java.security.KeyPair]()
+      }
     else
       new SimpleGeneratorHostKeyProvider())
 
   sshd.setShellFactory(
     new org.apache.sshd.common.Factory[org.apache.sshd.server.Command] {
       def create() =
-        new org.apache.sshd.server.Command {
+        new org.apache.sshd.server.Command with Logging {
           logger.info("Instantiated")
           var in: java.io.InputStream = null
           var out: java.io.OutputStream = null
@@ -106,12 +105,19 @@ class ScalaSshShell(port: Int, name: String, user: String, passwd: String,
           var thread: Thread = null
           @volatile var inShutdown = false
 
-          def setInputStream(in: java.io.InputStream) { this.in = in }
+          def setInputStream(in: java.io.InputStream) {
+            this.in = in
+          }
 
           def setOutputStream(out: java.io.OutputStream) {
             this.out = new java.io.OutputStream {
-              override def close() { out.close() }
-              override def flush() { out.flush() }
+              override def close() {
+                out.close()
+              }
+
+              override def flush() {
+                out.flush()
+              }
 
               override def write(b: Int) {
                 if (b.toChar == '\n')
@@ -133,7 +139,9 @@ class ScalaSshShell(port: Int, name: String, user: String, passwd: String,
             }
           }
 
-          def setErrorStream(err: java.io.OutputStream) { this.err = err }
+          def setErrorStream(err: java.io.OutputStream) {
+            this.err = err
+          }
 
           def setExitCallback(exit: org.apache.sshd.server.ExitCallback) {
             this.exit = exit
@@ -160,7 +168,7 @@ class ScalaSshShell(port: Int, name: String, user: String, passwd: String,
                 new scala.tools.nsc.interpreter.JLineCompletion(il.intp))
 
               if (il.intp.reporter.hasErrors) {
-                logger.severe("Got errors, abandoning connection")
+                logger.error("Got errors, abandoning connection")
                 return
               }
 
@@ -189,6 +197,7 @@ class ScalaSshShell(port: Int, name: String, user: String, passwd: String,
               exit.onExit(0)
             }
           }
+
           def destroy() {
             inShutdown = true
           }

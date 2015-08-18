@@ -16,9 +16,9 @@
 
 package peak6.util
 
-object CrashingThread {
-  implicit val (logger, formatter, appender) = ZeroLoggerFactory.newLogger(this)
+import grizzled.slf4j.Logging
 
+object CrashingThread {
   def start(name: Option[String] = None,
             daemon: Boolean = false)(target: => Unit): CrashingThread = {
     val th = new CrashingThread(name, target)
@@ -29,22 +29,17 @@ object CrashingThread {
 }
 
 class CrashingThread(name: Option[String], target: => Unit)
-extends Thread() {
-  import CrashingThread._
+  extends Thread() with Logging {
 
   final override def run() {
-    name foreach { setName(_) }
+    name foreach {
+      setName
+    }
     try
       target
     catch {
       case e: Throwable =>
-	val stack = e.getStackTrace.foldLeft (new StringBuilder()) {
-	  (sb, f) =>
-	    sb.++=("  ")
-	    sb.++=(f.toString)
-            sb += '\n'
-	}.toString
-        logger.severe("Unhandled exception:\n" + e.toString + "\n" + stack)
+        logger.error("Unhandled exception:\n" + e.getMessage, e)
         System.exit(1)
     }
   }
