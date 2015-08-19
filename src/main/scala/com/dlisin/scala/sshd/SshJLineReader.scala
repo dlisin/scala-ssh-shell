@@ -1,11 +1,11 @@
-package peak6.util
+package com.dlisin.scala.sshd
 
 import java.io.{InputStream, OutputStream}
 import java.util.{Collection => JCollection, List => JList}
 
+import _root_.jline.console.completer.{ArgumentCompleter, Completer}
+import _root_.jline.console.history.{History => JHistory}
 import _root_.jline.{console => jconsole}
-import jline.console.completer.{ArgumentCompleter, Completer}
-import jline.console.history.{History => JHistory}
 
 import scala.tools.nsc.interpreter
 import scala.tools.nsc.interpreter.Completion

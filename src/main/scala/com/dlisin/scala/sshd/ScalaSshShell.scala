@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package peak6.util
+package com.dlisin.scala.sshd
 
 import java.io.PrintWriter
 

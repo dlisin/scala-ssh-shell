@@ -3,7 +3,7 @@
  * @author Alexander Spoon
  */
 
-package peak6.util
+package com.dlisin.scala.sshd
 
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interpreter._
