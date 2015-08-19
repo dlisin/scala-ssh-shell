@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.dlisin.scala.sshd
+package com.dlisin.scala.ssh
 
 import java.io.PrintWriter
 
@@ -26,6 +26,8 @@ import org.apache.sshd.server.session.ServerSession
 import scala.reflect.Manifest
 import scala.tools.nsc.Settings
 import scala.tools.nsc.Settings
+import scala.tools.nsc.interpreter.NamedParam
+import scala.tools.nsc.interpreter.NamedParam.Typed
 
 object ScalaSshShell {
   def main(args: Array[String]) {
@@ -52,10 +54,14 @@ object ScalaSshShell {
 class ScalaSshShell(port: Int, name: String, user: String, passwd: String,
                     keysResourcePath: Option[String]) {
 
-  var bindings: Seq[(String, String, Any)] = IndexedSeq()
+  var bindings: Seq[NamedParam] = IndexedSeq()
 
-  def bind[T: Manifest](name: String, value: T) {
-    bindings :+=(name, manifest[T].toString, value)
+  def bind[T: Manifest](name: String, value: T): Unit = {
+    bind(new Typed[T](name, value))
+  }
+
+  def bind(binding: NamedParam): Unit = {
+    bindings :+= binding
   }
 
   val sshd = org.apache.sshd.SshServer.setUpDefaultServer()
@@ -152,35 +158,12 @@ class ScalaSshShell(port: Int, name: String, user: String, passwd: String,
           def start(env: org.apache.sshd.server.Environment) {
             thread = CrashingThread.start(Some("ScalaSshShell-" + name)) {
 
-              val repl = new SshILoop(in, out)
-              val settings = new Settings()
-              settings.embeddedDefaults(getClass.getClassLoader)
-              settings.usejavacp.value = true
-              settings.Yreplsync.value = true
-
-//              repl.createInterpreter()
-//              repl.in = new SshJLineReader(in, out, () => new JLineCompletion(repl.intp))
-
-//              if (repl.intp.reporter.hasErrors) {
-//                logger.error("Got errors, abandoning connection")
-//                return
-//              }
-
-//              repl.printWelcome()
+              val repl = new SshILoop(name, in, out, bindings:_*)
               try {
-//                repl.intp.initialize()
-//                repl.intp.beQuietDuring {
-//                  repl.intp.bind("stdout", null) // ToDo : out
-//                  for ((bname, btype, bval) <- bindings)
-//                    repl.bind(bname, btype, bval)
-//                }
-//                repl.intp.quietRun(
-//                  """def println(a: Any) = {
-//                       stdout.write(a.toString)
-//                       stdout.write('\n')
-//                     }""")
-//                repl.intp.quietRun(
-//                  """def exit = println("Use ctrl-D to exit shell.")""")
+                val settings = new Settings()
+                settings.embeddedDefaults(getClass.getClassLoader)
+                settings.usejavacp.value = true
+                settings.Yreplsync.value = true
 
                 repl.process(settings)
               } finally {

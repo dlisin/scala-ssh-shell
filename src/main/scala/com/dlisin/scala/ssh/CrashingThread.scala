@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.dlisin.scala.sshd
+package com.dlisin.scala.ssh
 
 import grizzled.slf4j.Logging
 
