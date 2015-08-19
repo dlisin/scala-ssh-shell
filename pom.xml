@@ -10,8 +10,8 @@
 
   <properties>
     <java.version>1.8</java.version>
-    <scala.version>2.10</scala.version>
-    <scala.full.version>2.10.5</scala.full.version>
+    <scala.version>2.11</scala.version>
+    <scala.full.version>2.11.7</scala.full.version>
 
     <maven.version>3.0</maven.version>
 
@@ -71,15 +71,20 @@
       <version>${scala.full.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.scala-lang</groupId>
+      <groupId>jline</groupId>
       <artifactId>jline</artifactId>
-      <version>${scala.full.version}</version>
+      <version>${scala.version}</version>
     </dependency>
 
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcprov-jdk16</artifactId>
       <version>1.46</version>
+    </dependency>
+    <dependency>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
+      <version>1.9</version>
     </dependency>
 
     <dependency>
@@ -89,15 +94,9 @@
     </dependency>
 
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>1.6.4</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.dongxiguo</groupId>
-      <artifactId>zero-log_${scala.version}</artifactId>
-      <version>0.3.2</version>
+      <groupId>org.clapper</groupId>
+      <artifactId>grizzled-slf4j_${scala.version}</artifactId>
+      <version>1.0.2</version>
     </dependency>
   </dependencies>
 </project>

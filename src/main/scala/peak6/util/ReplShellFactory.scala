@@ -1,15 +1,14 @@
 package peak6.util
 
+import org.apache.sshd.common.Factory
+import org.apache.sshd.server.{Command, Environment}
+
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interpreter._
 
-import org.apache.sshd.common.Factory
-import org.apache.sshd.server.Command
-import org.apache.sshd.server.Environment
-
 final class ReplShellFactory(settingsFactory: () => Settings, boundValues: NamedParam*) extends Factory[Command] {
 
-  override final def create = new DefaultCommand {
+  override def create = new DefaultCommand {
     override final def start(env: Environment) {
       new Thread {
         override final def run() {

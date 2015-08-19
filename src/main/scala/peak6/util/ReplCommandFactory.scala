@@ -1,19 +1,16 @@
 package peak6.util
 
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.OutputStreamWriter
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, OutputStreamWriter}
+
+import org.apache.commons.codec.Charsets
+import org.apache.sshd.server.{CommandFactory, Environment}
 
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interpreter._
 
-import org.apache.commons.codec.Charsets
-import org.apache.sshd.server.CommandFactory
-import org.apache.sshd.server.Environment
-
 final class ReplCommandFactory(settingsFactory: () => Settings, boundValues: NamedParam*) extends CommandFactory {
 
-  override final def createCommand(command: String) = new DefaultCommand {
+  override def createCommand(command: String) = new DefaultCommand {
 
     override final def start(env: Environment) {
       new Thread {
@@ -29,7 +26,7 @@ final class ReplCommandFactory(settingsFactory: () => Settings, boundValues: Nam
                 reader.close()
               }
               stream.flush()
-              stream.toByteArray()
+              stream.toByteArray
             } finally {
               stream.close()
             }
