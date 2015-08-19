@@ -11,22 +11,21 @@ private[ssh] class ReplShellFactory(name: String,
                              settings: () => Settings,
                              boundValues: NamedParam*) extends Factory[Command] {
   override def create = new ReplCommand {
-    logger.info("Initializing REPL")
-
     override final def start(env: Environment) {
       new Thread {
         override final def run() {
+          logger.info("Starting REPL session")
           val repl: ILoop = new SshILoop(name, inputStream, outputStream, boundValues: _*)
+
           try {
             repl.process(settings())
-
-            logger.info("Closing REPL")
             exitCallback.onExit(0)
           } catch {
             case e: Throwable =>
-              logger.error("An error occurred. Closing REPL", e)
+              logger.error("An error occurred", e)
               exitCallback.onExit(1, e.getMessage)
           } finally {
+            logger.info("Closing REPL session")
             repl.closeInterpreter()
           }
         }
@@ -93,5 +92,4 @@ private[ssh] trait ReplCommand extends Command with Logging {
   override final def setExitCallback(exitCallback: ExitCallback) {
     this._exitCallback = exitCallback
   }
-
 }

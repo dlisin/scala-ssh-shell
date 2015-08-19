@@ -13,7 +13,7 @@ import scala.tools.nsc.interpreter.jline.JLineHistory
 import scala.tools.nsc.interpreter.session.History
 
 private[ssh] class SshJLineReader(in: InputStream, out: OutputStream,
-                                  completer: => Completion) extends interpreter.InteractiveReader {
+                                  completer: () => Completion) extends interpreter.InteractiveReader {
   val interactive = true
 
   val history: History = new JLineHistory.JLineFileHistory()
@@ -32,7 +32,7 @@ private[ssh] class SshJLineReader(in: InputStream, out: OutputStream,
   def completion: Completion = _completion
 
   override def postInit() = {
-    _completion = completer
+    _completion = completer()
 
     consoleReader.initCompletion(completion)
   }

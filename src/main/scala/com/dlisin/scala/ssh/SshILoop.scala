@@ -3,7 +3,7 @@ package com.dlisin.scala.ssh
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interpreter._
 
-private[ssh] class SshILoop(name:String, in: InputStream, out: OutputStream, bindValues: NamedParam*)
+private[ssh] class SshILoop(name: String, in: InputStream, out: OutputStream, bindValues: NamedParam*)
   extends ILoop(None, new JPrintWriter(out)) {
 
   override def prompt: String = {
@@ -11,7 +11,7 @@ private[ssh] class SshILoop(name:String, in: InputStream, out: OutputStream, bin
   }
 
   override def chooseReader(settings: Settings): InteractiveReader = {
-    new SshJLineReader(in, out, new JLineCompletion(intp))
+    new SshJLineReader(in, out, () => new JLineCompletion(intp))
   }
 
   override def createInterpreter(): Unit = {
@@ -20,6 +20,7 @@ private[ssh] class SshILoop(name:String, in: InputStream, out: OutputStream, bin
     intp = new ILoopInterpreter {
       override final def initializeSynchronous(): Unit = {
         super.initializeSynchronous()
+
         // Bind values
         intp.quietBind("stdout", out)
         bindValues.foreach(intp.quietBind)
