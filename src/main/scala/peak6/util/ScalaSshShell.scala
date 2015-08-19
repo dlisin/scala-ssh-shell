@@ -24,6 +24,8 @@ import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider
 import org.apache.sshd.server.session.ServerSession
 
 import scala.reflect.Manifest
+import scala.tools.nsc.Settings
+import scala.tools.nsc.Settings
 
 object ScalaSshShell {
   def main(args: Array[String]) {
@@ -149,51 +151,43 @@ class ScalaSshShell(port: Int, name: String, user: String, passwd: String,
 
           def start(env: org.apache.sshd.server.Environment) {
             thread = CrashingThread.start(Some("ScalaSshShell-" + name)) {
-              val pw = new PrintWriter(out)
-              logger.info("New ssh client connected")
-              pw.write("Connected to %s, starting repl...\n".format(name))
-              pw.flush()
 
-              val il = new scala.tools.nsc.interpreter.SshILoop(None, pw)
-              il.setPrompt(name + "> ")
-              il.settings = new scala.tools.nsc.Settings()
-              il.settings.embeddedDefaults(getClass.getClassLoader)
-              il.settings.usejavacp.value = true
-              il.settings.Yreplsync.value = true
-              il.createInterpreter()
+              val repl = new SshILoop(in, out)
+              val settings = new Settings()
+              settings.embeddedDefaults(getClass.getClassLoader)
+              settings.usejavacp.value = true
+              settings.Yreplsync.value = true
 
-              il.in = new scala.tools.nsc.interpreter.JLineIOReader(
-                in,
-                out,
-                new scala.tools.nsc.interpreter.JLineCompletion(il.intp))
+//              repl.createInterpreter()
+//              repl.in = new SshJLineReader(in, out, () => new JLineCompletion(repl.intp))
 
-              if (il.intp.reporter.hasErrors) {
-                logger.error("Got errors, abandoning connection")
-                return
+//              if (repl.intp.reporter.hasErrors) {
+//                logger.error("Got errors, abandoning connection")
+//                return
+//              }
+
+//              repl.printWelcome()
+              try {
+//                repl.intp.initialize()
+//                repl.intp.beQuietDuring {
+//                  repl.intp.bind("stdout", null) // ToDo : out
+//                  for ((bname, btype, bval) <- bindings)
+//                    repl.bind(bname, btype, bval)
+//                }
+//                repl.intp.quietRun(
+//                  """def println(a: Any) = {
+//                       stdout.write(a.toString)
+//                       stdout.write('\n')
+//                     }""")
+//                repl.intp.quietRun(
+//                  """def exit = println("Use ctrl-D to exit shell.")""")
+
+                repl.process(settings)
+              } finally {
+                repl.closeInterpreter()
               }
 
-              il.printWelcome()
-              try {
-                il.intp.initialize()
-                il.intp.beQuietDuring {
-                  il.intp.bind("stdout", pw)
-                  for ((bname, btype, bval) <- bindings)
-                    il.bind(bname, btype, bval)
-                }
-                il.intp.quietRun(
-                  """def println(a: Any) = {
-                       stdout.write(a.toString)
-                       stdout.write('\n')
-                     }""")
-                il.intp.quietRun(
-                  """def exit = println("Use ctrl-D to exit shell.")""")
-
-                il.loop()
-              } finally il.closeInterpreter()
-
               logger.info("Exited repl, closing ssh.")
-              pw.write("Bye.\r\n")
-              pw.flush()
               exit.onExit(0)
             }
           }
