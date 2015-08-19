@@ -16,15 +16,11 @@
 
 package com.dlisin.scala.ssh
 
-import java.io.PrintWriter
-
-import grizzled.slf4j.Logging
 import org.apache.sshd.common.keyprovider.AbstractKeyPairProvider
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider
 import org.apache.sshd.server.session.ServerSession
 
 import scala.reflect.Manifest
-import scala.tools.nsc.Settings
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interpreter.NamedParam
 import scala.tools.nsc.interpreter.NamedParam.Typed
@@ -101,85 +97,15 @@ class ScalaSshShell(port: Int, name: String, user: String, passwd: String,
     else
       new SimpleGeneratorHostKeyProvider())
 
-  sshd.setShellFactory(
-    new org.apache.sshd.common.Factory[org.apache.sshd.server.Command] {
-      def create() =
-        new org.apache.sshd.server.Command with Logging {
-          logger.info("Instantiated")
-          var in: java.io.InputStream = null
-          var out: java.io.OutputStream = null
-          var err: java.io.OutputStream = null
-          var exit: org.apache.sshd.server.ExitCallback = null
-          var thread: Thread = null
-          @volatile var inShutdown = false
+  val settings = { () =>
+    val settings = new Settings()
+    settings.embeddedDefaults(getClass.getClassLoader)
+    settings.usejavacp.value = true
+    settings.Yreplsync.value = true
+    settings
+  }
 
-          def setInputStream(in: java.io.InputStream) {
-            this.in = in
-          }
-
-          def setOutputStream(out: java.io.OutputStream) {
-            this.out = new java.io.OutputStream {
-              override def close() {
-                out.close()
-              }
-
-              override def flush() {
-                out.flush()
-              }
-
-              override def write(b: Int) {
-                if (b.toChar == '\n')
-                  out.write('\r')
-                out.write(b)
-              }
-
-              override def write(b: Array[Byte]) {
-                var i = 0
-                while (i < b.size) {
-                  write(b(i))
-                  i += 1
-                }
-              }
-
-              override def write(b: Array[Byte], off: Int, len: Int) {
-                write(b.slice(off, off + len))
-              }
-            }
-          }
-
-          def setErrorStream(err: java.io.OutputStream) {
-            this.err = err
-          }
-
-          def setExitCallback(exit: org.apache.sshd.server.ExitCallback) {
-            this.exit = exit
-          }
-
-          def start(env: org.apache.sshd.server.Environment) {
-            thread = CrashingThread.start(Some("ScalaSshShell-" + name)) {
-
-              val repl = new SshILoop(name, in, out, bindings:_*)
-              try {
-                val settings = new Settings()
-                settings.embeddedDefaults(getClass.getClassLoader)
-                settings.usejavacp.value = true
-                settings.Yreplsync.value = true
-
-                repl.process(settings)
-              } finally {
-                repl.closeInterpreter()
-              }
-
-              logger.info("Exited repl, closing ssh.")
-              exit.onExit(0)
-            }
-          }
-
-          def destroy() {
-            inShutdown = true
-          }
-        }
-    })
+  sshd.setShellFactory(new ReplShellFactory(name, settings, bindings: _*))
 
   def start() {
     sshd.start()
