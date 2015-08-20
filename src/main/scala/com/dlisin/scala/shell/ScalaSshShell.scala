@@ -1,4 +1,4 @@
-package com.dlisin.scala.ssh
+package com.dlisin.scala.shell
 
 import org.apache.sshd.common.keyprovider.AbstractKeyPairProvider
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider
@@ -31,8 +31,7 @@ object ScalaSshShell {
   }
 }
 
-class ScalaSshShell(port: Int, name: String, user: String, passwd: String,
-                    keysResourcePath: Option[String]) {
+class ScalaSshShell(port: Int, name: String, user: String, passwd: String, keysResourcePath: Option[String]) {
 
   var bindings: Seq[NamedParam] = IndexedSeq()
 
@@ -89,7 +88,7 @@ class ScalaSshShell(port: Int, name: String, user: String, passwd: String,
     settings
   }
 
-  sshd.setShellFactory(new ReplShellFactory(name, settings, bindings: _*))
+  sshd.setShellFactory(ReplShellFactory(settings, Some(name), bindings))
 
   def start() {
     sshd.start()

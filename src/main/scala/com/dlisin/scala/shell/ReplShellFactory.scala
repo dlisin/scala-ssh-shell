@@ -1,4 +1,4 @@
-package com.dlisin.scala.ssh
+package com.dlisin.scala.shell
 
 import grizzled.slf4j.Logging
 import org.apache.sshd.common.Factory
@@ -7,15 +7,25 @@ import org.apache.sshd.server.{Command, Environment, ExitCallback}
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interpreter._
 
-private[ssh] class ReplShellFactory(name: String,
-                             settings: () => Settings,
-                             boundValues: NamedParam*) extends Factory[Command] {
+private[shell] object ReplShellFactory {
+  def apply(settings: () => Settings,
+            name: Option[String] = None,
+            bindValues: Seq[NamedParam] = Seq.empty,
+            bindCommands: Seq[String] = Seq.empty): ReplShellFactory = {
+    new ReplShellFactory(settings, name, bindValues, bindCommands)
+  }
+}
+
+private[shell] class ReplShellFactory(settings: () => Settings,
+                                      name: Option[String],
+                                      bindValues: Seq[NamedParam],
+                                      bindCommands: Seq[String]) extends Factory[Command] {
   override def create = new ReplCommand {
     override final def start(env: Environment) {
       new Thread {
         override final def run() {
           logger.info("Starting REPL session")
-          val repl: ILoop = new SshILoop(name, inputStream, outputStream, boundValues: _*)
+          val repl: ILoop = new SshILoop(inputStream, outputStream, name, bindValues, bindCommands)
 
           try {
             repl.process(settings())
@@ -34,8 +44,7 @@ private[ssh] class ReplShellFactory(name: String,
   }
 }
 
-
-private[ssh] trait ReplCommand extends Command with Logging {
+private[shell] trait ReplCommand extends Command with Logging {
   var _inputStream: InputStream = null
   var _outputStream: OutputStream = null
   var _errorStream: OutputStream = null
