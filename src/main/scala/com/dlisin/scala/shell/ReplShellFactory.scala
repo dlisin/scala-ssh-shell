@@ -7,25 +7,17 @@ import org.apache.sshd.server.{Command, Environment, ExitCallback}
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interpreter._
 
-private[shell] object ReplShellFactory {
-  def apply(settings: () => Settings,
-            name: Option[String] = None,
-            bindValues: Seq[NamedParam] = Seq.empty,
-            bindCommands: Seq[String] = Seq.empty): ReplShellFactory = {
-    new ReplShellFactory(settings, name, bindValues, bindCommands)
-  }
-}
-
 private[shell] class ReplShellFactory(settings: () => Settings,
-                                      name: Option[String],
-                                      bindValues: Seq[NamedParam],
-                                      bindCommands: Seq[String]) extends Factory[Command] {
+                                      replName: String,
+                                      initialBindings: Seq[NamedParam] = Seq.empty,
+                                      initialCommands: Seq[String] = Seq.empty) extends Factory[Command] {
   override def create = new ReplCommand {
     override final def start(env: Environment) {
       new Thread {
         override final def run() {
-          logger.info("Starting REPL session")
-          val repl: ILoop = new SshILoop(inputStream, outputStream, name, bindValues, bindCommands)
+          logger.info("Starting repl session")
+          val repl: ILoop =
+            new SshILoop(inputStream, outputStream, Some(replName), initialBindings, initialCommands)
 
           try {
             repl.process(settings())
@@ -35,7 +27,7 @@ private[shell] class ReplShellFactory(settings: () => Settings,
               logger.error("An error occurred", e)
               exitCallback.onExit(1, e.getMessage)
           } finally {
-            logger.info("Closing REPL session")
+            logger.info("Closing repl session")
             repl.closeInterpreter()
           }
         }

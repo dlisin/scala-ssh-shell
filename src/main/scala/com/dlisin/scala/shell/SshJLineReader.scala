@@ -11,14 +11,6 @@ import scala.tools.nsc.interpreter._
 import scala.tools.nsc.interpreter.jline.{JLineDelimiter, JLineHistory}
 import scala.tools.nsc.interpreter.session.History
 
-private[shell] object SshJLineReader {
-  def apply(inputStream: InputStream,
-            outputStream: OutputStream,
-            completer: () => Completion): SshJLineReader = {
-    new SshJLineReader(inputStream, outputStream, completer)
-  }
-}
-
 /**
  * Copied from [[scala.tools.nsc.interpreter.jline.InteractiveReader]]
  */
@@ -56,6 +48,9 @@ private[shell] class SshJLineReader(inputStream: InputStream,
   def readOneKey(prompt: String) = consoleReader.readOneKey(prompt)
 }
 
+/**
+ * Copied from [[scala.tools.nsc.interpreter.jline.JLineConsoleReader]]
+ */
 private[shell] class JLineConsoleReader(in: InputStream, out: OutputStream)
   extends ConsoleReader(in, out, new SshTerminal()) with VariColumnTabulator {
   val isAcross = interpreter.isAcross
