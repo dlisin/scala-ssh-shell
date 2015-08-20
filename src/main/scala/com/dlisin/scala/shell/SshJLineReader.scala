@@ -7,9 +7,9 @@ import _root_.jline.console.completer.{ArgumentCompleter, Completer}
 
 import scala.tools.nsc.interpreter
 import scala.tools.nsc.interpreter.Completion.Candidates
+import scala.tools.nsc.interpreter._
 import scala.tools.nsc.interpreter.jline.{JLineDelimiter, JLineHistory}
 import scala.tools.nsc.interpreter.session.History
-import scala.tools.nsc.interpreter.{Completion, JCollection, JList}
 
 private[shell] object SshJLineReader {
   def apply(inputStream: InputStream,
@@ -24,7 +24,7 @@ private[shell] object SshJLineReader {
  */
 private[shell] class SshJLineReader(inputStream: InputStream,
                                     outputStream: OutputStream,
-                                    completer: () => Completion) extends interpreter.InteractiveReader {
+                                    completer: () => Completion) extends InteractiveReader {
   val interactive = true
 
   val history: History = new JLineHistory.JLineFileHistory()
@@ -38,7 +38,7 @@ private[shell] class SshJLineReader(inputStream: InputStream,
     reader
   }
 
-  private[this] var _completion: Completion = interpreter.NoCompletion
+  private[this] var _completion: Completion = NoCompletion
 
   def completion: Completion = _completion
 
@@ -57,7 +57,7 @@ private[shell] class SshJLineReader(inputStream: InputStream,
 }
 
 private[shell] class JLineConsoleReader(in: InputStream, out: OutputStream)
-  extends ConsoleReader(in, out) with interpreter.VariColumnTabulator {
+  extends ConsoleReader(in, out, new SshTerminal()) with VariColumnTabulator {
   val isAcross = interpreter.isAcross
   val marginSize = 3
 
@@ -127,7 +127,7 @@ private[shell] class JLineConsoleReader(in: InputStream, out: OutputStream)
   def initCompletion(completion: Completion): Unit = {
     this setBellEnabled false
 
-    if (completion ne interpreter.NoCompletion) {
+    if (completion ne NoCompletion) {
       val jlineCompleter = new ArgumentCompleter(new JLineDelimiter, new Completer {
         val tc = completion.completer()
 
