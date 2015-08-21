@@ -3,7 +3,6 @@
 *.jar
 *.war
 *.ear
-*.log
 
 # Maven
 target/
@@ -24,3 +23,9 @@ project/plugins/project/
 *.iml
 *.ipr
 *.iws
+
+# Mac OS X
+.DS_Store
+
+# Other stuff
+*.log
