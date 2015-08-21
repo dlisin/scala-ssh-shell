@@ -2,6 +2,7 @@ package com.dlisin.scala.shell
 
 import java.io.{InputStream, OutputStream}
 
+import _root_.jline.TerminalSupport
 import _root_.jline.console.ConsoleReader
 import _root_.jline.console.completer.{ArgumentCompleter, Completer}
 
@@ -12,7 +13,8 @@ import scala.tools.nsc.interpreter.jline.{JLineDelimiter, JLineHistory}
 import scala.tools.nsc.interpreter.session.History
 
 /**
- * Copied from [[scala.tools.nsc.interpreter.jline.InteractiveReader]]
+ * This class is copied from [[scala.tools.nsc.interpreter.jline.InteractiveReader]]
+ * Slightly updated to be able to work with Input/Output Streams from SSH session
  */
 private[shell] class SshJLineReader(inputStream: InputStream,
                                     outputStream: OutputStream,
@@ -22,7 +24,7 @@ private[shell] class SshJLineReader(inputStream: InputStream,
   val history: History = new JLineHistory.JLineFileHistory()
 
   private val consoleReader = {
-    val reader = new JLineConsoleReader(inputStream, outputStream)
+    val reader = new SshJLineConsoleReader(inputStream, outputStream)
     reader.setPaginationEnabled(interpreter.isPaged)
     reader.setExpandEvents(false)
     reader.setHistory(history.asInstanceOf[JLineHistory])
@@ -48,10 +50,7 @@ private[shell] class SshJLineReader(inputStream: InputStream,
   def readOneKey(prompt: String) = consoleReader.readOneKey(prompt)
 }
 
-/**
- * Copied from [[scala.tools.nsc.interpreter.jline.JLineConsoleReader]]
- */
-private[shell] class JLineConsoleReader(in: InputStream, out: OutputStream)
+private[shell] class SshJLineConsoleReader(in: InputStream, out: OutputStream)
   extends ConsoleReader(in, out, new SshTerminal()) with VariColumnTabulator {
   val isAcross = interpreter.isAcross
   val marginSize = 3
@@ -139,6 +138,14 @@ private[shell] class JLineConsoleReader(in: InputStream, out: OutputStream)
       this addCompleter jlineCompleter
       this setAutoprintThreshold 400 // max completion candidates without warning
     }
+  }
+}
+
+private[shell] class SshTerminal extends TerminalSupport(true) {
+  override def init(): Unit = {
+    super.init()
+    setAnsiSupported(true)
+    setEchoEnabled(false)
   }
 }
 

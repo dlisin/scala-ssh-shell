@@ -42,6 +42,7 @@ private[shell] class SshILoop(inputStream: InputStream, outputStream: OutputStre
     super.printWelcome()
 
     // Print initial bindings
+    echo("The following predefined val's are available:")
     printBinding(stdoutBinding)
     initialBindings.foreach(printBinding)
   }
