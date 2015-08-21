@@ -17,6 +17,7 @@ class ScalaSshShell(replName: String,
                     user: String,
                     passwd: String,
                     keysResourcePath: Option[String] = None,
+                    host: Option[List[String]] = None,
                     initialBindings: Option[List[NamedParam]] = None,
                     initialCommands: Option[List[String]] = None) extends Logging {
 
@@ -64,6 +65,7 @@ class ScalaSshShell(replName: String,
 
     val sshd = SshServer.setUpDefaultServer()
     sshd.setPort(port)
+    host.foreach(hostList => sshd.setHost(hostList.mkString(",")))
     sshd.setPasswordAuthenticator(pwAuth)
     sshd.setKeyPairProvider(keyPairProvider)
     sshd.setShellFactory(shellFactory)
