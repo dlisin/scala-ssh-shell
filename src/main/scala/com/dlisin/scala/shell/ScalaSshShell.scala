@@ -4,6 +4,7 @@ import grizzled.slf4j.Logging
 import org.apache.sshd.SshServer
 import org.apache.sshd.common.KeyPairProvider
 import org.apache.sshd.common.keyprovider.AbstractKeyPairProvider
+import org.apache.sshd.common.util.KeyUtils
 import org.apache.sshd.server.PasswordAuthenticator
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider
 import org.apache.sshd.server.session.ServerSession
@@ -39,11 +40,11 @@ class ScalaSshShell(replName: String,
             val get = doReadKeyPair(in)
           }.get
 
-          override def getKeyTypes = getKeyType(pair)
+          override def getKeyTypes = KeyUtils.getKeyType(pair)
 
           override def loadKey(s: String) = pair
 
-          def loadKeys() = Array[java.security.KeyPair]()
+          def loadKeys() = new java.util.ArrayList[java.security.KeyPair]()
         }
       else
         new SimpleGeneratorHostKeyProvider()
