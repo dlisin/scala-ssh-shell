@@ -4,10 +4,12 @@ import grizzled.slf4j.Logging
 import org.apache.sshd.SshServer
 import org.apache.sshd.common.KeyPairProvider
 import org.apache.sshd.common.keyprovider.AbstractKeyPairProvider
-import org.apache.sshd.common.util.KeyUtils
+import java.io.{InputStreamReader, FileInputStream}
 import org.apache.sshd.server.PasswordAuthenticator
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider
 import org.apache.sshd.server.session.ServerSession
+
+import java.lang.{Iterable => JIterable}
 
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interpreter.NamedParam
@@ -16,7 +18,7 @@ class ScalaSshShell(replName: String,
                     port: Int,
                     user: String,
                     passwd: String,
-                    keysResourcePath: Option[String] = None,
+                    hostKeyPath: Option[List[String]] = None,
                     host: Option[List[String]] = None,
                     initialBindings: Option[List[NamedParam]] = None,
                     initialCommands: Option[List[String]] = None) extends Logging {
@@ -33,22 +35,58 @@ class ScalaSshShell(replName: String,
     }
 
     val keyPairProvider: KeyPairProvider = {
-      if (keysResourcePath.isDefined)
-        new AbstractKeyPairProvider {
-          val pair = new SimpleGeneratorHostKeyProvider() {
-            val in = classOf[ScalaSshShell].getResourceAsStream(
-              keysResourcePath.get)
-            val get = doReadKeyPair(in)
-          }.get
+      import java.security.KeyPair
+      import org.bouncycastle.openssl._
+      import org.bouncycastle.openssl.jcajce._
 
-          override def getKeyTypes = KeyUtils.getKeyType(pair)
-
-          override def loadKey(s: String) = pair
-
-          def loadKeys() = new java.util.ArrayList[java.security.KeyPair]()
+      val converter = new JcaPEMKeyConverter()
+      def readKeyPair(is: java.io.InputStream): Option[KeyPair] = {
+        try {
+          val pemParser = new PEMParser(new InputStreamReader(is))
+          val pemKeyPair = pemParser.readObject().asInstanceOf[PEMKeyPair]
+          Some(converter.getKeyPair(pemKeyPair))
+        } catch {
+          case e: Throwable =>
+            logger.warn(s"HostKeyPairProvider: Skipping Host KeyPair because there was an error while trying to read it: ${e.getMessage}")
+            None
         }
-      else
-        new SimpleGeneratorHostKeyProvider()
+      }
+
+      // All host keys loaded from classpath resources
+      val hostKeyResourcePath = List("/ssh_host_dsa_key", "/ssh_host_rsa_key")
+      val resourceKeys: List[KeyPair] = hostKeyResourcePath.flatMap { path =>
+        val tmp = classOf[ScalaSshShell].getResourceAsStream(path)
+        if (tmp == null) None
+        else {
+          readKeyPair(tmp)
+        }
+      }
+
+      // All host keys loaded from provided resources
+      val providedKeys: List[KeyPair] = hostKeyPath.map(_.map { path =>
+        try {
+          readKeyPair(new FileInputStream(path))
+        } catch {
+          case e: Throwable =>
+            logger.warn(s"HostKeyPairProvider: Skipping Host KeyPair from $path because there was an error reading it", e)
+            None
+        }
+      }).getOrElse(Nil).flatten
+
+      // Merge the list
+      val defaultKeyPairProvider = new SimpleGeneratorHostKeyProvider()
+      val keys: List[KeyPair] = resourceKeys ::: providedKeys
+      if(keys.isEmpty) {
+        logger.info("HostKeyPairProvider: No Host KeyPairs were loaded. Falling back to SimpleGeneratorHostKeyProvider to generate keys for you.")
+        defaultKeyPairProvider
+      }
+      else {
+        logger.info(s"HostKeyPairProvider: has a total of ${keys.length} host KeyPairs loaded (${providedKeys.length} from provided paths / ${resourceKeys.length} from classpath resources)")
+        new AbstractKeyPairProvider {
+          import scala.collection.JavaConverters._
+          override def loadKeys(): JIterable[KeyPair] = keys.asJava
+        }
+      }
     }
 
     val shellFactory = {

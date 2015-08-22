@@ -4,10 +4,21 @@ object ScalaSample {
   def main(args: Array[String]) {
     val sshd = new ScalaSshShell(
       replName = "test",
-      port = 4444, user = "user", passwd = "fluke",
-      keysResourcePath = Some("/test.ssh.keys"),
-      host = Some(List(                                // A list of all interfaces that sshd should bind
-        "127.0.0.1"                                    // bind to.
+      port = 4444,
+      user = "user",
+      passwd = "fluke",
+
+      // All the following parameters are OPTIONAL and have default values!
+
+      // A list of OpenSSH-style host key file paths
+      hostKeyPath = Some(List(
+        "/tmp/ssh_host_rsa_key",
+        "/tmp/ssh_host_dsa_key"
+      )),
+
+      // A list of all interfaces that SSHD should bind to
+      host = Some(List(
+        "127.0.0.1"
       ))
     )
 
