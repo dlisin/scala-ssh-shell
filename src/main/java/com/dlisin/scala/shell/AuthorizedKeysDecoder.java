@@ -3,9 +3,12 @@ package com.dlisin.scala.shell;
 /**
  * This class is copied from a stackoverflow question: http://stackoverflow.com/questions/3531506/using-public-key-from-authorized-keys-with-java-security
  * It is able to read and write OpenSSH public keys (the "authorized_keys" style) which we use for publickey authentication
- *
+ * <p>
  * Created by marcusheese on 25/02/14.
  */
+
+import org.apache.sshd.common.util.Base64;
+
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -20,8 +23,6 @@ import java.security.spec.DSAPublicKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.Scanner;
 
-import org.apache.commons.codec.binary.Base64;
-
 public class AuthorizedKeysDecoder {
   private byte[] bytes;
   private int pos;
@@ -34,7 +35,7 @@ public class AuthorizedKeysDecoder {
     // both ssh-rsa and ssh-dss begin with "AAAA" due to the length bytes
     for (String part : keyLine.split(" ")) {
       if (part.startsWith("AAAA")) {
-        byte [] bytePart = part.getBytes();
+        byte[] bytePart = part.getBytes();
         bytes = Base64.decodeBase64(bytePart);
         break;
       }
@@ -95,7 +96,7 @@ public class AuthorizedKeysDecoder {
   public static String encodePublicKey(PublicKey publicKey, String user)
     throws IOException {
     String publicKeyEncoded;
-    if(publicKey.getAlgorithm().equals("RSA")){
+    if (publicKey.getAlgorithm().equals("RSA")) {
       RSAPublicKey rsaPublicKey = (RSAPublicKey) publicKey;
       ByteArrayOutputStream byteOs = new ByteArrayOutputStream();
       DataOutputStream dos = new DataOutputStream(byteOs);
@@ -108,8 +109,7 @@ public class AuthorizedKeysDecoder {
       publicKeyEncoded = new String(
         Base64.encodeBase64(byteOs.toByteArray()));
       return "ssh-rsa " + publicKeyEncoded + " " + user;
-    }
-    else if(publicKey.getAlgorithm().equals("DSA")){
+    } else if (publicKey.getAlgorithm().equals("DSA")) {
       DSAPublicKey dsaPublicKey = (DSAPublicKey) publicKey;
       DSAParams dsaParams = dsaPublicKey.getParams();
 
@@ -128,8 +128,7 @@ public class AuthorizedKeysDecoder {
       publicKeyEncoded = new String(
         Base64.encodeBase64(byteOs.toByteArray()));
       return "ssh-dss " + publicKeyEncoded + " " + user;
-    }
-    else{
+    } else {
       throw new IllegalArgumentException(
         "Unknown public key encoding: " + publicKey.getAlgorithm());
     }
