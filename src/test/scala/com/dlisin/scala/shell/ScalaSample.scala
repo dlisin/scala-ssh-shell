@@ -2,7 +2,7 @@ package com.dlisin.scala.shell
 
 object ScalaSample {
   def main(args: Array[String]) {
-    val sshd = new ScalaSshShell(
+    val sshd = ScalaShell(
       replName = "test",
       port = 4444,
       user = "user",
@@ -12,8 +12,8 @@ object ScalaSample {
 
       // A list of OpenSSH-style host key file paths
       hostKeyPath = Some(List(
-        "/tmp/ssh_host_rsa_key",
-        "/tmp/ssh_host_dsa_key"
+        "~/.ssh/id_dsa",
+        "~/.ssh/id_rsa"
       )),
 
       // A list of all interfaces that SSHD should bind to
@@ -41,7 +41,9 @@ object ScalaSample {
         sshd.start()
       }
     }.start()
+
     new java.util.Scanner(System.in) nextLine()
+
     sshd.stop()
   }
 }

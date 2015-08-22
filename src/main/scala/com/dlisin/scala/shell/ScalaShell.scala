@@ -1,27 +1,130 @@
 package com.dlisin.scala.shell
 
+import java.io.{FileInputStream, InputStreamReader}
+import java.lang.{Iterable => JIterable}
+import java.util.{Collection => JCollection}
+
 import grizzled.slf4j.Logging
 import org.apache.sshd.SshServer
 import org.apache.sshd.common.KeyPairProvider
 import org.apache.sshd.common.keyprovider.AbstractKeyPairProvider
-import java.io.{InputStreamReader, FileInputStream}
 import org.apache.sshd.server.PasswordAuthenticator
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider
 import org.apache.sshd.server.session.ServerSession
 
-import java.lang.{Iterable => JIterable}
-
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interpreter.NamedParam
+import scala.tools.nsc.typechecker.TypeStrings
 
-class ScalaSshShell(replName: String,
-                    port: Int,
-                    user: String,
-                    passwd: String,
-                    hostKeyPath: Option[List[String]] = None,
-                    host: Option[List[String]] = None,
-                    initialBindings: Option[List[NamedParam]] = None,
-                    initialCommands: Option[List[String]] = None) extends Logging {
+object ScalaShell {
+
+  import scala.collection.JavaConverters._
+
+  def apply(replName: String,
+            port: Int,
+            user: String,
+            passwd: String,
+            hostKeyPath: Option[List[String]] = None,
+            host: Option[List[String]] = None,
+            initialBindings: Option[List[NamedParam]] = None,
+            initialCommands: Option[List[String]] = None): ScalaShell = {
+    new ScalaShell(
+      replName = replName,
+      port = port,
+      user = user,
+      passwd = passwd,
+      hostKeyPath = hostKeyPath,
+      host = host,
+      initialBindings = initialBindings,
+      initialCommands = initialCommands
+    )
+  }
+
+  /**
+   * Java API
+   */
+  def create(replName: String,
+             port: Int,
+             user: String,
+             passwd: String): ScalaShell = {
+    apply(
+      replName = replName,
+      port = port,
+      user = user,
+      passwd = passwd
+    )
+  }
+
+  /**
+   * Java API
+   */
+  def create(replName: String,
+             port: Int,
+             user: String,
+             passwd: String,
+             initialBindings: JCollection[NamedParam],
+             initialCommands: JCollection[String]): ScalaShell = {
+    apply(
+      replName = replName,
+      port = port,
+      user = user,
+      passwd = passwd,
+      initialBindings = Option(initialBindings.asScala.toList),
+      initialCommands = Option(initialCommands.asScala.toList)
+    )
+  }
+
+  /**
+   * Java API
+   */
+  def create(replName: String,
+             port: Int,
+             user: String,
+             passwd: String,
+             hostKeyPath: JCollection[String],
+             host: JCollection[String],
+             initialBindings: JCollection[NamedParam],
+             initialCommands: JCollection[String]): ScalaShell = {
+    apply(
+      replName = replName,
+      port = port,
+      user = user,
+      passwd = passwd,
+      hostKeyPath = Option(hostKeyPath.asScala.toList),
+      host = Option(host.asScala.toList),
+      initialBindings = Option(initialBindings.asScala.toList),
+      initialCommands = Option(initialCommands.asScala.toList)
+    )
+  }
+
+  /**
+   * Java API
+   */
+  def create(replName: String,
+             port: Int,
+             user: String,
+             passwd: String,
+             hostKeyPath: JCollection[String],
+             initialBindings: JCollection[NamedParam],
+             initialCommands: JCollection[String]): ScalaShell = {
+    apply(
+      replName = replName,
+      port = port,
+      user = user,
+      passwd = passwd,
+      hostKeyPath = Option(hostKeyPath.asScala.toList) // ToDo
+    )
+  }
+}
+
+class ScalaShell(replName: String,
+                 port: Int,
+                 user: String,
+                 passwd: String,
+                 hostKeyPath: Option[List[String]] = None,
+                 host: Option[List[String]] = None,
+                 initialBindings: Option[List[NamedParam]] = None,
+                 initialCommands: Option[List[String]] = None) extends Logging {
 
   private var _initialBindings = initialBindings.getOrElse(Seq.empty)
   private var _initialCommands = initialCommands.getOrElse(Seq.empty)
@@ -36,6 +139,7 @@ class ScalaSshShell(replName: String,
 
     val keyPairProvider: KeyPairProvider = {
       import java.security.KeyPair
+
       import org.bouncycastle.openssl._
       import org.bouncycastle.openssl.jcajce._
 
@@ -55,7 +159,7 @@ class ScalaSshShell(replName: String,
       // All host keys loaded from classpath resources
       val hostKeyResourcePath = List("/ssh_host_dsa_key", "/ssh_host_rsa_key")
       val resourceKeys: List[KeyPair] = hostKeyResourcePath.flatMap { path =>
-        val tmp = classOf[ScalaSshShell].getResourceAsStream(path)
+        val tmp = classOf[ScalaShell].getResourceAsStream(path)
         if (tmp == null) None
         else {
           readKeyPair(tmp)
@@ -76,14 +180,16 @@ class ScalaSshShell(replName: String,
       // Merge the list
       val defaultKeyPairProvider = new SimpleGeneratorHostKeyProvider()
       val keys: List[KeyPair] = resourceKeys ::: providedKeys
-      if(keys.isEmpty) {
+      if (keys.isEmpty) {
         logger.info("HostKeyPairProvider: No Host KeyPairs were loaded. Falling back to SimpleGeneratorHostKeyProvider to generate keys for you.")
         defaultKeyPairProvider
       }
       else {
         logger.info(s"HostKeyPairProvider: has a total of ${keys.length} host KeyPairs loaded (${providedKeys.length} from provided paths / ${resourceKeys.length} from classpath resources)")
         new AbstractKeyPairProvider {
+
           import scala.collection.JavaConverters._
+
           override def loadKeys(): JIterable[KeyPair] = keys.asJava
         }
       }
@@ -125,4 +231,11 @@ class ScalaSshShell(replName: String,
   def stop() {
     sshd.stop()
   }
+}
+
+/**
+ * Java API
+ */
+class Binding(val name: String, val tpe: String, val value: Any) extends NamedParam {
+  def this(name: String, value: Any) = this(name, TypeStrings.fromValue(value), value)
 }
