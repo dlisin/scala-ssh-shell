@@ -3,15 +3,13 @@ package com.dlisin.scala.shell
 import java.io.OutputStream
 
 import scala.tools.nsc.Settings
-import scala.tools.nsc.interpreter.NamedParam._
 import scala.tools.nsc.interpreter._
+import scala.util.Properties._
 
 private[shell] class SshILoop(inputStream: InputStream, outputStream: OutputStream,
                               replName: Option[String],
                               initialBindings: Seq[NamedParam],
                               initialCommands: Seq[String]) extends ILoop(None, new JPrintWriter(outputStream)) {
-
-  private val stdoutBinding = new Typed("stdout", out)
 
   override def prompt: String = {
     replName match {
@@ -29,9 +27,8 @@ private[shell] class SshILoop(inputStream: InputStream, outputStream: OutputStre
     intp.initializeSynchronous()
 
     // Default bindings
-    intp.quietBind(stdoutBinding)
+    intp.quietBind("stdout", out)
     intp.quietRun( """def println(a: Any) = { stdout.write(a.toString); stdout.write('\n'); }""")
-    intp.quietRun( """def exit = println("Use ctrl-D to exit shell.")""")
 
     // User bindings
     initialBindings.foreach(intp.quietBind)
@@ -39,15 +36,18 @@ private[shell] class SshILoop(inputStream: InputStream, outputStream: OutputStre
   }
 
   override def printWelcome(): Unit = {
-    super.printWelcome()
+    echo(s"Welcome to Scala $versionString ($javaVmName, Java $javaVersion).")
+    echo(s"Type in expressions to have them evaluated.")
 
-    // Print initial bindings
-    echo("The following predefined val's are available:")
-    printBinding(stdoutBinding)
+    echo(s"The following predefined val's are available:")
+    printBinding("stdout", out)
     initialBindings.foreach(printBinding)
+
+    echo(s"Type :help for more information.")
+    echo(s"Type :quit or press Ctrl-D to exit shell.")
   }
 
-  private def printBinding(b:NamedParam):Unit = {
+  private def printBinding(b: NamedParam): Unit = {
     echo(s"${b.name}: ${b.tpe} = ${b.value}")
   }
 }
