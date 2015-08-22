@@ -6,10 +6,10 @@ import java.util.Collections;
 public class JavaSample {
   public static void main(String[] args) {
     ScalaShell sshd = ScalaShell.create(
-      "test",  // Repl name
-      4444,    // Port
-      "user",  // User
-      "fluke", // Password
+      "test",  // replName
+      4444,    // port
+      "user",  // user
+      "fluke", // passwd
 
       // All the following parameters are OPTIONAL and have default values!
 
@@ -36,7 +36,6 @@ public class JavaSample {
     );
 
     sshd.addInitialBinding(new Binding("nums", Arrays.asList(1, 2, 3, 4, 5)));
-
     sshd.addInitialCommand("import java.util.{ArrayList => JArrayList}");
 
     new Thread(sshd::start).start();

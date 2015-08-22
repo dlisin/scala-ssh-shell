@@ -33,16 +33,12 @@ object ScalaSample {
     )
 
     sshd.addInitialBinding("nums", Vector(1, 2, 3, 4, 5))
-
     sshd.addInitialCommand("import java.util.{ArrayList => JArrayList}")
 
     new Thread {
-      override final def run() {
-        sshd.start()
-      }
+      override final def run() = sshd.start()
     }.start()
-
-    new java.util.Scanner(System.in) nextLine()
+    new java.util.Scanner(System.in).nextLine()
 
     sshd.stop()
   }
