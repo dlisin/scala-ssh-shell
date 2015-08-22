@@ -19,11 +19,22 @@ object ScalaSample {
       // A list of all interfaces that SSHD should bind to
       host = Some(List(
         "127.0.0.1"
+      )),
+
+      // Initial bindings (same as if you add it later with .addInitialBinding method)
+      initialBindings = Some(List(
+        ("pi", 3.1415926)
+      )),
+
+      // Initial commands (same as if you add it later with .addInitialCommand method)
+      initialCommands = Some(List(
+        "import java.util.{Date => JDate}"
       ))
     )
 
-    sshd.addInitialBinding("pi", 3.1415926)
     sshd.addInitialBinding("nums", Vector(1, 2, 3, 4, 5))
+
+    sshd.addInitialCommand("import java.util.{ArrayList => JArrayList}")
 
     new Thread {
       override final def run() {
