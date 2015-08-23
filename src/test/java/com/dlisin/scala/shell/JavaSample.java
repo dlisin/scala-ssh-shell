@@ -5,7 +5,7 @@ import java.util.Collections;
 
 public class JavaSample {
   public static void main(String[] args) {
-    ScalaShell sshd = ScalaShell.create(
+    ScalaSshShell sshd = ScalaSshShell.create(
       "test",  // replName
       4444,    // port
       "user",  // user
@@ -13,16 +13,20 @@ public class JavaSample {
 
       // All the following parameters are OPTIONAL and have default values!
 
-      // A list of OpenSSH-style host key file paths
-      Arrays.asList(
-        "~/.ssh/id_dsa",
-        "~/.ssh/id_rsa"
-      ),
-
       // A list of all interfaces that SSHD should bind to
       Collections.singleton(
         "127.0.0.1"
       ),
+
+
+      // A list of OpenSSH-style host key file paths
+      Arrays.asList(
+        "/tmp/id_dsa",
+        "/tmp/id_rsa"
+      ),
+
+      // Path to an OpenSSH-style "authorized_keys" file
+      "/tmp/authorized_keys",
 
       // Initial bindings (same as if you add it later with .addInitialBinding method)
       Collections.singleton(

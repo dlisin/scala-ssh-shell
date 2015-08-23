@@ -2,7 +2,7 @@ package com.dlisin.scala.shell
 
 object ScalaSample {
   def main(args: Array[String]) {
-    val sshd = ScalaShell(
+    val sshd = ScalaSshShell(
       replName = "test",
       port = 4444,
       user = "user",
@@ -10,16 +10,19 @@ object ScalaSample {
 
       // All the following parameters are OPTIONAL and have default values!
 
-      // A list of OpenSSH-style host key file paths
-      hostKeyPath = Some(List(
-        "~/.ssh/id_dsa",
-        "~/.ssh/id_rsa"
-      )),
-
       // A list of all interfaces that SSHD should bind to
       host = Some(List(
         "127.0.0.1"
       )),
+
+      // A list of OpenSSH-style host key file paths
+      hostKeyPath = Some(List(
+        "/tmp/id_dsa",
+        "/tmp/id_rsa"
+      )),
+
+      // Path to an OpenSSH-style "authorized_keys" file
+      authorizedKeysPath = Some("/tmp/authorized_keys"),
 
       // Initial bindings (same as if you add it later with .addInitialBinding method)
       initialBindings = Some(List(
