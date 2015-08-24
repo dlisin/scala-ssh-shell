@@ -54,6 +54,15 @@
         <configuration>
           <scalaVersion>${scala.full.version}</scalaVersion>
           <failOnMultipleScalaVersions>false</failOnMultipleScalaVersions>
+          <args>
+            <!-- Debug information -->
+            <arg>-g:line</arg>
+            <arg>-g:source</arg>
+            <arg>-g:vars</arg>
+            <!-- Report compilation warnings -->
+            <arg>-unchecked</arg>
+            <arg>-deprecation</arg>
+          </args>
         </configuration>
       </plugin>
 
